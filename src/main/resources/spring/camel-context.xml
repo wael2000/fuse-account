@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       http://camel.apache.org/schema/spring/camel-spring.xsd http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd">
+    <bean
+        class="org.apache.camel.component.servlet.CamelHttpTransportServlet" id="camelHttpTransportServlet"/>
+    <bean
+        class="org.springframework.boot.web.servlet.ServletRegistrationBean" id="servlet">
+        <property name="name" value="CamelServlet"/>
+        <property name="servlet" ref="camelHttpTransportServlet"/>
+        <property name="urlMappings" value="/fuse/*"/>
+    </bean>
+    <jdbc:initialize-database data-source="accountsDS" enabled="true">
+        <jdbc:script location="classpath:db-schema.sql"/>
+        <jdbc:script location="classpath:db-test-data.sql"/>
+    </jdbc:initialize-database>
+    <bean
+        class="org.springframework.jdbc.datasource.DriverManagerDataSource" id="accountsDS">
+        <property name="driverClassName" value="org.postgresql.Driver"/>
+        <property name="url" value="jdbc:postgresql://postgresql:5432/accounts"/>
+        <property name="username" value="accounts"/>
+        <property name="password" value="accounts"/>
+    </bean>
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
+        <propertyPlaceholder id="placeholder" location="classpath:sql.properties"/>
+        <restConfiguration bindingMode="auto" component="servlet"
+            contextPath="/" host="localhost" port="8080">
+            <dataFormatProperty key="xml.out.mustBeJAXBElement" value="false"/>
+        </restConfiguration>
+        <rest id="accountRest" produces="application/xml,application/json">
+            <get id="getAccountRest" uri="/account/{id}">
+                <to uri="direct:getAccount"/>
+            </get>
+            <get id="getAccountsRest" uri="/account">
+                <to uri="direct:getAccounts"/>
+            </get>
+            <get id="getAccountsXMLRest" produces="application/xml" uri="/accountXML">
+                <to uri="direct:getAccountsXML"/>
+            </get>
+        </rest>
+        <route id="account-route">
+            <from id="getAccount" uri="direct:getAccount"/>
+            <setHeader headerName="id" id="_setId">
+                <simple resultType="java.lang.Integer">${headers.id}</simple>
+            </setHeader>
+            <to id="_toSQLSelect" uri="sql:{{sql.account}}?dataSource=accountsDS"/>
+            <marshal id="_marshal1">
+                <json library="Jackson"/>
+            </marshal>
+        </route>
+        <route id="accounts-route">
+            <from id="getAccounts" uri="direct:getAccounts"/>
+            <to id="_toSQLSelect2" uri="sql:{{sql.accounts}}?dataSource=accountsDS"/>
+            <marshal id="_marshal2">
+                <json library="Jackson"/>
+            </marshal>
+        </route>
+        <route id="accounts-xml-route">
+            <from id="getAccountsXML" uri="direct:getAccountsXML"/>
+            <to id="_toSQLSelect3" uri="sql:{{sql.accounts}}?dataSource=accountsDS"/>
+            <marshal id="_marshal3">
+                <json library="Jackson"/>
+            </marshal>
+            <unmarshal id="_marshal4">
+                <xmljson/>
+            </unmarshal>
+        </route>
+    </camelContext>
+</beans>
