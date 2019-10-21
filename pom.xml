@@ -78,10 +78,15 @@
       <artifactId>camel-xmljson</artifactId>
     </dependency>
     <dependency>
-	  <groupId>xom</groupId>
-	  <artifactId>xom</artifactId>
-	  <version>1.2.5</version>
-	</dependency>
+	<groupId>xom</groupId>
+	<artifactId>xom</artifactId>
+	<version>1.2.5</version>
+    </dependency>
+    <dependency>
+	<groupId>com.hcl</groupId>
+	<artifactId>appscan.sdk</artifactId>
+	<version>1.0.9</version>
+    </dependency>
   </dependencies>
   <repositories>
     <repository>
@@ -147,6 +152,23 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-plugin-plugin</artifactId>
+	<version>3.2</version>
+	<configuration>
+		<goalPrefix>appscan</goalPrefix>
+	</configuration>
+	<executions>
+		<execution>
+			<id>default-descriptor</id>
+			<goals>
+				<goal>descriptor</goal>
+			</goals>
+			<phase>process-classes</phase>
+		</execution>
+	</executions>
+       </plugin>
     </plugins>
   </build>
 </project>
